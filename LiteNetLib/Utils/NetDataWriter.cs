@@ -511,20 +511,31 @@ namespace LiteNetLib.Utils
         /// </remarks>
         public void Put(IPEndPoint endPoint)
         {
+            Span<byte> buffer = stackalloc byte[16];
+
             if (endPoint.AddressFamily == AddressFamily.InterNetwork)
             {
                 Put((byte)0);
+
+                if (!endPoint.Address.TryWriteBytes(buffer, out int written) || written != 4)
+                    throw new ArgumentException("Invalid IPv4 address", nameof(endPoint));
+
+                Put(buffer.Slice(0, 4));
             }
             else if (endPoint.AddressFamily == AddressFamily.InterNetworkV6)
             {
                 Put((byte)1);
+
+                if (!endPoint.Address.TryWriteBytes(buffer, out int written) || written != 16)
+                    throw new ArgumentException("Invalid IPv6 address", nameof(endPoint));
+
+                Put(buffer.Slice(0, 16));
             }
             else
             {
-                throw new ArgumentException("Unsupported address family: " + endPoint.AddressFamily);
+                throw new ArgumentException("Unsupported address family: " + endPoint.AddressFamily, nameof(endPoint));
             }
 
-            Put(endPoint.Address.GetAddressBytes());
             Put((ushort)endPoint.Port);
         }
 
